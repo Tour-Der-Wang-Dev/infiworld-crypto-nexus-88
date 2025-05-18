@@ -1,73 +1,151 @@
-# Welcome to your Lovable project
 
-## Project info
+# InfiWorld Crypto Hub
 
-**URL**: https://lovable.dev/projects/57dbebc0-dd1c-4b55-ba28-8a3ceecd5fea
+InfiWorld Crypto Hub is a comprehensive platform for cryptocurrency enthusiasts, providing maps of crypto-friendly locations, a marketplace for crypto transactions, freelance opportunities, travel reservations with crypto payments, and identity verification services.
 
-## How can I edit this code?
+![InfiWorld Logo](/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png)
 
-There are several ways of editing your application.
+## 🚀 Getting Started
 
-**Use Lovable**
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/57dbebc0-dd1c-4b55-ba28-8a3ceecd5fea) and start prompting.
+### Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (v18.0.0 or higher)
+- npm, yarn, or bun package manager
 
-**Use your preferred IDE**
+### Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone the repository:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+# Using HTTPS
+git clone <repo-url>
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Using SSH
+git clone git@<repo-url>
 ```
 
-**Edit a file directly in GitHub**
+2. Navigate into the project directory:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+cd infiworld-crypto-hub
+```
 
-**Use GitHub Codespaces**
+3. Install dependencies:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Using npm
+npm install
 
-## What technologies are used for this project?
+# Using yarn
+yarn install
 
-This project is built with:
+# Using bun
+bun install
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+4. Start the development server:
 
-## How can I deploy this project?
+```bash
+# Using npm
+npm run dev
 
-Simply open [Lovable](https://lovable.dev/projects/57dbebc0-dd1c-4b55-ba28-8a3ceecd5fea) and click on Share -> Publish.
+# Using yarn
+yarn dev
 
-## Can I connect a custom domain to my Lovable project?
+# Using bun
+bun dev
+```
 
-Yes, you can!
+5. Open your browser and navigate to `http://localhost:8080` to see the app running.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🛠️ Technologies Used
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- **[React](https://reactjs.org/)**: Front-end library for building user interfaces
+- **[TypeScript](https://www.typescriptlang.org/)**: Static type-checking for JavaScript
+- **[Vite](https://vitejs.dev/)**: Next-generation frontend tooling
+- **[Tailwind CSS](https://tailwindcss.com/)**: Utility-first CSS framework
+- **[Shadcn UI](https://ui.shadcn.com/)**: Re-usable UI components
+- **[React Router](https://reactrouter.com/)**: Navigation and routing for React applications
+- **[Tanstack React Query](https://tanstack.com/query/latest)**: Data fetching and state management
+- **[Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/api/)**: Interactive, customizable maps
+- **[React Hook Form](https://react-hook-form.com/)**: Form state management and validation
+- **[Zod](https://github.com/colinhacks/zod)**: TypeScript-first schema validation
+- **[Lucide React](https://lucide.dev/guide/packages/lucide-react)**: Beautiful & consistent icons
+
+## 📂 Project Structure
+
+The project follows a modular structure:
+
+- `src/`: Source code of the application
+  - `components/`: Reusable UI components
+  - `components/ui/`: Shadcn UI components
+  - `hooks/`: Custom React hooks
+  - `lib/`: Utility functions and helpers
+  - `pages/`: Page components for routing
+- `public/`: Static assets
+
+For a detailed breakdown of all files, see [filesExplainer.md](./filesExplainer.md).
+
+## 🧪 Running Tests
+
+```bash
+# Using npm
+npm run test
+
+# Using yarn
+yarn test
+
+# Using bun
+bun test
+```
+
+## 🚢 Deployment
+
+The application can be built for production using:
+
+```bash
+# Using npm
+npm run build
+
+# Using yarn
+yarn build
+
+# Using bun
+bun run build
+```
+
+The build artifacts will be stored in the `dist/` directory.
+
+## 🤝 Contributing
+
+We welcome contributions to InfiWorld Crypto Hub! Please follow these steps:
+
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests to ensure everything works
+5. Commit your changes (`git commit -m 'Add some amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+Please make sure your code follows our coding standards and includes appropriate tests.
+
+### Coding Standards
+
+- Use consistent naming conventions
+- Write descriptive comments
+- Follow TypeScript best practices
+- Use meaningful variable and function names
+- Keep components small and focused on a single responsibility
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👏 Acknowledgments
+
+- The Shadcn UI team for their excellent component library
+- The React community for their continuous support and innovation
+- All contributors who have helped shape this project

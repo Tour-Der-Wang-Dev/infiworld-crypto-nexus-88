@@ -1,41 +1,45 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { QuestionType } from './TaskList';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Question, QuestionType } from './TaskList';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { PlusCircle, X } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
-interface TaskFormProps {
-  initialValues?: Question;
-  onSubmit: (data: Omit<Question, 'id'>) => void;
-  onCancel: () => void;
-}
-
-const questionTypeOptions: { value: QuestionType; label: string }[] = [
-  { value: 'mcq', label: 'Multiple Choice' },
-  { value: 'open-ended', label: 'Open-Ended' },
-  { value: 'true-false', label: 'True/False' },
-];
-
-// Create a schema for the form
-const formSchema = z.object({
+// Form schema for validation
+const questionFormSchema = z.object({
   type: z.enum(['mcq', 'open-ended', 'true-false'] as const),
-  question: z.string().min(1, { message: 'Question text is required' }),
+  question: z.string().min(3, { message: 'Question must be at least 3 characters' }),
   answer: z.string().min(1, { message: 'Answer is required' }),
   options: z.array(z.string()).optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+// Type for form values
+type QuestionFormValues = z.infer<typeof questionFormSchema>;
+
+interface TaskFormProps {
+  initialValues?: {
+    type: QuestionType;
+    question: string;
+    answer: string;
+    options?: string[];
+  };
+  onSubmit: (values: QuestionFormValues) => void;
+  onCancel: () => void;
+}
 
 export const TaskForm: React.FC<TaskFormProps> = ({ initialValues, onSubmit, onCancel }) => {
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const [questionType, setQuestionType] = useState<QuestionType>(initialValues?.type || 'mcq');
+  const [options, setOptions] = useState<string[]>(initialValues?.options || ['', '', '', '']);
+  
+  const { register, handleSubmit, formState: { errors } } = useForm<QuestionFormValues>({
+    resolver: zodResolver(questionFormSchema),
     defaultValues: initialValues || {
       type: 'mcq',
       question: '',
@@ -44,245 +48,161 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialValues, onSubmit, onC
     },
   });
 
-  const { control, watch, setValue } = form;
-  const questionType = watch('type');
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
 
-  // Field array for MCQ options
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'options',
-  });
+  const addOption = () => {
+    setOptions([...options, '']);
+  };
 
-  // Make sure we have options array for MCQ type
-  React.useEffect(() => {
-    if (questionType === 'mcq' && (!watch('options') || watch('options')?.length === 0)) {
-      setValue('options', ['', '', '', '']);
-    } 
-    else if (questionType === 'true-false') {
-      // For true-false, limit answer to either "true" or "false"
-      setValue('answer', 'true');
+  const removeOption = (index: number) => {
+    const newOptions = options.filter((_, i) => i !== index);
+    setOptions(newOptions);
+  };
+
+  const onFormSubmit = (data: QuestionFormValues) => {
+    // For MCQs, include the options
+    if (data.type === 'mcq') {
+      data.options = options.filter(option => option.trim() !== '');
+    } else if (data.type === 'true-false') {
+      // For true/false questions, answer should be 'true' or 'false'
+      data.options = ['true', 'false'];
+    } else {
+      // For open-ended questions, no options needed
+      data.options = [];
     }
-  }, [questionType, setValue, watch]);
-
-  const handleSubmit = (values: FormValues) => {
-    // Clean up the data before submission
-    const formData: Omit<Question, 'id'> = {
-      type: values.type,
-      question: values.question,
-      answer: values.answer,
-    };
-
-    // Include options only for multiple choice questions
-    if (values.type === 'mcq' && values.options) {
-      // Filter out empty options
-      const filteredOptions = values.options.filter(option => option.trim() !== '');
-      
-      // Make sure we have at least 2 options
-      if (filteredOptions.length < 2) {
-        form.setError('options', { 
-          message: 'Multiple choice questions need at least 2 options' 
-        });
-        return;
-      }
-      
-      // Make sure the answer is one of the options
-      if (!filteredOptions.includes(values.answer)) {
-        form.setError('answer', { 
-          message: 'Answer must be one of the provided options'
-        });
-        return;
-      }
-      
-      formData.options = filteredOptions;
-    }
-
-    onSubmit(formData);
+    onSubmit(data);
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Question Type</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select question type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {questionTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label>Question Type</Label>
+          <RadioGroup 
+            defaultValue={questionType} 
+            className="flex flex-wrap gap-4 mt-2"
+            onValueChange={(val) => setQuestionType(val as QuestionType)}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="mcq" id="mcq" {...register('type')} />
+              <Label htmlFor="mcq" className="flex items-center gap-2">
+                Multiple Choice
+                <Badge>MCQ</Badge>
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="open-ended" id="open-ended" {...register('type')} />
+              <Label htmlFor="open-ended" className="flex items-center gap-2">
+                Open Ended
+                <Badge variant="secondary">Text</Badge>
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="true-false" id="true-false" {...register('type')} />
+              <Label htmlFor="true-false" className="flex items-center gap-2">
+                True/False
+                <Badge variant="outline">T/F</Badge>
+              </Label>
+            </div>
+          </RadioGroup>
+          {errors.type && <p className="text-sm text-red-500 mt-1">{errors.type.message}</p>}
+        </div>
 
-        <FormField
-          control={control}
-          name="question"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Question</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Enter your question here..." 
-                  className="resize-none" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div>
+          <Label htmlFor="question">Question</Label>
+          <Textarea 
+            id="question"
+            placeholder="Enter your question here"
+            className="mt-1"
+            {...register('question')}
+          />
+          {errors.question && <p className="text-sm text-red-500 mt-1">{errors.question.message}</p>}
+        </div>
 
         {questionType === 'mcq' && (
-          <div className="space-y-2">
-            <FormLabel>Options</FormLabel>
-            {fields.map((field, index) => (
-              <div key={field.id} className="flex gap-2 items-center">
-                <FormField
-                  control={control}
-                  name={`options.${index}`}
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormControl>
-                        <Input
-                          placeholder={`Option ${index + 1}`}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {fields.length > 2 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => remove(index)}
-                    className="flex-shrink-0"
+          <div>
+            <Label>Options</Label>
+            <div className="space-y-2 mt-1">
+              {options.map((option, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    value={option}
+                    onChange={(e) => handleOptionChange(index, e.target.value)}
+                    placeholder={`Option ${index + 1}`}
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => removeOption(index)}
                   >
-                    <X className="h-4 w-4" />
+                    Remove
                   </Button>
-                )}
-              </div>
-            ))}
-            
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append('')}
-              className="mt-2"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Option
-            </Button>
+                </div>
+              ))}
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={addOption}
+                className="w-full"
+              >
+                Add Option
+              </Button>
+            </div>
           </div>
         )}
 
-        {questionType === 'mcq' && (
-          <FormField
-            control={control}
-            name="answer"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Correct Answer</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || ''}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select correct answer" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {watch('options')?.map((option, index) => (
-                      option.trim() !== '' && (
-                        <SelectItem key={index} value={option}>
-                          {option}
-                        </SelectItem>
-                      )
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
         {questionType === 'true-false' && (
-          <FormField
-            control={control}
-            name="answer"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Correct Answer</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select correct answer" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="true">True</SelectItem>
-                    <SelectItem value="false">False</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div>
+            <Label htmlFor="answer">Answer</Label>
+            <div className="flex items-center gap-3 mt-2">
+              <Switch 
+                id="answer"
+                {...register('answer')}
+                checked={initialValues?.answer === 'true'}
+                onCheckedChange={(checked) => {
+                  const answerValue = checked ? 'true' : 'false';
+                  const event = {
+                    target: {
+                      name: 'answer',
+                      value: answerValue
+                    }
+                  };
+                  register('answer').onChange(event as any);
+                }}
+              />
+              <Label htmlFor="answer">{initialValues?.answer === 'true' ? 'True' : 'False'}</Label>
+            </div>
+          </div>
         )}
 
-        {questionType === 'open-ended' && (
-          <FormField
-            control={control}
-            name="answer"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Answer</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Enter the answer here..." 
-                    className="resize-none" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {(questionType === 'mcq' || questionType === 'open-ended') && (
+          <div>
+            <Label htmlFor="answer">Answer</Label>
+            <Textarea
+              id="answer"
+              placeholder={questionType === 'mcq' ? 'Enter the correct option' : 'Enter model answer'}
+              className="mt-1"
+              {...register('answer')}
+            />
+            {errors.answer && <p className="text-sm text-red-500 mt-1">{errors.answer.message}</p>}
+          </div>
         )}
+      </div>
 
-        <div className="flex justify-end space-x-2 pt-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit">
-            Save Question
-          </Button>
-        </div>
-      </form>
-    </Form>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">
+          Save Question
+        </Button>
+      </div>
+    </form>
   );
 };
