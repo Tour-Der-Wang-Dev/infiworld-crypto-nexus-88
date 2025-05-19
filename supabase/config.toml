@@ -16,5 +16,9 @@ enabled = true
 enabled = true
 port = 54323
 
+[storage]
+enabled = true
+
 [functions.setup-storage]
 verify_jwt = true
+

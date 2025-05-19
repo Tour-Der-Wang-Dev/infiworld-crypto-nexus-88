@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Filter, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -63,9 +64,9 @@ const Marketplace = () => {
     const fetchListings = async () => {
       setIsLoading(true);
       try {
-        // Fetch listings from Supabase (if table exists)
+        // Use type assertion to fix type issues with Supabase tables
         const { data, error } = await supabase
-          .from('marketplace_listings')
+          .from('marketplace_listings' as any)
           .select('*')
           .order('created_at', { ascending: false });
         
@@ -75,7 +76,7 @@ const Marketplace = () => {
         }
 
         // Transform data to match our Listing type
-        if (data) {
+        if (data?.length) {
           const formattedListings: Listing[] = data.map(item => ({
             ...item,
             // Use default images if none are provided
@@ -88,7 +89,7 @@ const Marketplace = () => {
               rating: 4.5,
               verified: true
             }
-          }));
+          })) as Listing[];
           
           setListings(formattedListings);
         } else {
@@ -107,7 +108,7 @@ const Marketplace = () => {
     fetchListings();
   }, []);
   
-  // Mock data as fallback
+  // Mock data as fallback - updated to match the Listing interface
   const MOCK_LISTINGS: Listing[] = [
     {
       id: "1",
@@ -125,7 +126,8 @@ const Marketplace = () => {
         verified: true
       },
       featured: true,
-      created_at: "2025-02-15T09:30:00Z"
+      created_at: "2025-02-15T09:30:00Z",
+      user_id: "mock-user-id-1"
     },
     {
       id: "2",
@@ -142,7 +144,8 @@ const Marketplace = () => {
         rating: 4.5,
         verified: true
       },
-      created_at: "2025-04-20T10:15:00Z"
+      created_at: "2025-04-20T10:15:00Z",
+      user_id: "mock-user-id-2"
     },
     {
       id: "3",
@@ -159,7 +162,8 @@ const Marketplace = () => {
         rating: 4.9,
         verified: true
       },
-      created_at: "2025-05-01T14:45:00Z"
+      created_at: "2025-05-01T14:45:00Z",
+      user_id: "mock-user-id-3"
     },
     {
       id: "4",
@@ -176,7 +180,8 @@ const Marketplace = () => {
         rating: 4.7,
         verified: false
       },
-      created_at: "2025-05-10T08:20:00Z"
+      created_at: "2025-05-10T08:20:00Z",
+      user_id: "mock-user-id-4"
     }
   ];
   
@@ -196,7 +201,7 @@ const Marketplace = () => {
     const matchesPrice = listing.price >= activeFilters.minPrice && 
       listing.price <= activeFilters.maxPrice;
     
-    // Crypto filter
+    // Crypto filter - update the property name to match accepted_cryptos
     const matchesCrypto = activeFilters.acceptedCryptos.length === 0 || 
       activeFilters.acceptedCryptos.some(crypto => 
         listing.accepted_cryptos.includes(crypto)
@@ -357,7 +362,15 @@ const Marketplace = () => {
                       {filteredListings
                         .filter(listing => listing.featured)
                         .map(listing => (
-                          <ListingCard key={listing.id} listing={listing} featured />
+                          <ListingCard 
+                            key={listing.id} 
+                            listing={{
+                              ...listing,
+                              createdAt: listing.created_at,
+                              acceptedCryptos: listing.accepted_cryptos
+                            } as any} 
+                            featured 
+                          />
                         ))}
                     </div>
                   </div>
@@ -368,7 +381,14 @@ const Marketplace = () => {
                 {filteredListings.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filteredListings.map(listing => (
-                      <ListingCard key={listing.id} listing={listing} />
+                      <ListingCard 
+                        key={listing.id} 
+                        listing={{
+                          ...listing,
+                          createdAt: listing.created_at,
+                          acceptedCryptos: listing.accepted_cryptos
+                        } as any} 
+                      />
                     ))}
                   </div>
                 ) : (

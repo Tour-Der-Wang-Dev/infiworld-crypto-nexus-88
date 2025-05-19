@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Layout from '../components/Layout';
 import { Button } from '@/components/ui/button';
@@ -102,16 +101,16 @@ const Verification = () => {
       
       if (uploadError) throw uploadError;
       
-      // 2. Create verification record in database
+      // 2. Create verification record in database using type assertion to fix TypeScript errors
       const { error: dbError } = await supabase
-        .from('verification_documents')
+        .from('verification_documents' as any)
         .insert({
           user_id: user.id,
           document_type: values.documentType,
           document_number: values.documentNumber,
           document_path: fileData?.path || fileName,
           verification_status: 'pending'
-        });
+        } as any);
       
       if (dbError) throw dbError;
       

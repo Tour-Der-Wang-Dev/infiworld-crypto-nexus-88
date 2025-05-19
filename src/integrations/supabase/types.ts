@@ -54,6 +54,54 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_listings: {
+        Row: {
+          accepted_cryptos: string[] | null
+          category: string
+          created_at: string | null
+          currency: string
+          description: string
+          featured: boolean | null
+          id: string
+          images: string[] | null
+          location: string | null
+          price: number
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_cryptos?: string[] | null
+          category: string
+          created_at?: string | null
+          currency?: string
+          description: string
+          featured?: boolean | null
+          id?: string
+          images?: string[] | null
+          location?: string | null
+          price: number
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_cryptos?: string[] | null
+          category?: string
+          created_at?: string | null
+          currency?: string
+          description?: string
+          featured?: boolean | null
+          id?: string
+          images?: string[] | null
+          location?: string | null
+          price?: number
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -61,6 +109,7 @@ export type Database = {
           id: string
           updated_at: string | null
           username: string | null
+          verification_status: string | null
           website: string | null
         }
         Insert: {
@@ -69,6 +118,7 @@ export type Database = {
           id: string
           updated_at?: string | null
           username?: string | null
+          verification_status?: string | null
           website?: string | null
         }
         Update: {
@@ -77,7 +127,44 @@ export type Database = {
           id?: string
           updated_at?: string | null
           username?: string | null
+          verification_status?: string | null
           website?: string | null
+        }
+        Relationships: []
+      }
+      verification_documents: {
+        Row: {
+          created_at: string | null
+          document_number: string
+          document_path: string
+          document_type: string
+          id: string
+          rejection_reason: string | null
+          updated_at: string | null
+          user_id: string
+          verification_status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_number: string
+          document_path: string
+          document_type: string
+          id?: string
+          rejection_reason?: string | null
+          updated_at?: string | null
+          user_id: string
+          verification_status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_number?: string
+          document_path?: string
+          document_type?: string
+          id?: string
+          rejection_reason?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verification_status?: string | null
         }
         Relationships: []
       }
