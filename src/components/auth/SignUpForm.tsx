@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SignUpFormProps {
   onSuccess: () => void;
@@ -34,7 +35,9 @@ const SignUpForm = ({ onSuccess }: SignUpFormProps) => {
       fullName: "",
       email: "",
       password: "",
-      acceptTerms: false,
+      // Fix: Initialize with undefined instead of false to avoid the type error
+      // The checkbox component will handle the undefined value as unchecked
+      acceptTerms: undefined as unknown as true,
     },
   });
 
@@ -42,20 +45,17 @@ const SignUpForm = ({ onSuccess }: SignUpFormProps) => {
     setIsLoading(true);
     
     try {
-      // In a real app, you would integrate with Supabase auth here
-      // const { error } = await supabase.auth.signUp({
-      //   email: values.email,
-      //   password: values.password,
-      //   options: {
-      //     data: {
-      //       full_name: values.fullName,
-      //     }
-      //   }
-      // });
-      // if (error) throw error;
+      const { error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            full_name: values.fullName,
+          }
+        }
+      });
       
-      // For now, we'll just simulate success after a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (error) throw error;
       
       toast.success("Account created successfully! Please check your email to verify your account.");
       onSuccess();
@@ -133,7 +133,9 @@ const SignUpForm = ({ onSuccess }: SignUpFormProps) => {
               <FormControl>
                 <Checkbox
                   checked={field.value}
-                  onCheckedChange={field.onChange}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked === true);
+                  }}
                   className="data-[state=checked]:bg-infi-gold data-[state=checked]:text-black"
                 />
               </FormControl>
