@@ -5,37 +5,49 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserProfileProps {
   user: {
-    name: string;
-    email: string;
+    id?: string;
+    name?: string;
+    email?: string;
     avatar?: string;
     verificationStatus?: "unverified" | "pending" | "verified";
   };
-  onSignOut: () => void;
+  onSignOut: () => Promise<void>;
 }
 
 const UserProfile = ({ user, onSignOut }: UserProfileProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSignOut = () => {
-    // In a real app, you would integrate with Supabase auth here
-    // await supabase.auth.signOut();
-    onSignOut();
+  const handleSignOut = async () => {
+    await onSignOut();
     setIsOpen(false);
-    toast.success("You have been signed out successfully");
   };
+
+  // Use first letter of name or email for avatar fallback
+  const getInitial = () => {
+    if (user.name && user.name.length > 0) {
+      return user.name.charAt(0).toUpperCase();
+    }
+    if (user.email && user.email.length > 0) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  const displayName = user.name || user.email?.split('@')[0] || "User";
+  const userEmail = user.email || "";
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9 border border-infi-gold/50">
-            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarImage src={user.avatar} alt={displayName} />
             <AvatarFallback className="bg-infi-blue text-white">
-              {user.name.charAt(0).toUpperCase()}
+              {getInitial()}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -44,14 +56,14 @@ const UserProfile = ({ user, onSignOut }: UserProfileProps) => {
         <div className="p-3">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 border border-infi-gold/50">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarImage src={user.avatar} alt={displayName} />
               <AvatarFallback className="bg-infi-blue text-white">
-                {user.name.charAt(0).toUpperCase()}
+                {getInitial()}
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium text-white">{user.name}</p>
-              <p className="text-xs text-gray-400">{user.email}</p>
+              <p className="text-sm font-medium text-white">{displayName}</p>
+              <p className="text-xs text-gray-400">{userEmail}</p>
             </div>
           </div>
           
@@ -66,7 +78,14 @@ const UserProfile = ({ user, onSignOut }: UserProfileProps) => {
             ) : user.verificationStatus === "pending" ? (
               <span className="text-xs text-infi-gold">Pending Review</span>
             ) : (
-              <span className="text-xs text-gray-400">Unverified</span>
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="p-0 h-auto text-xs text-infi-gold"
+                asChild
+              >
+                <a href="/verification">Verify Now</a>
+              </Button>
             )}
           </div>
         </div>

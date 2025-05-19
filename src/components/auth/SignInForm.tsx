@@ -8,6 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SignInFormProps {
   onSuccess: () => void;
@@ -22,6 +23,7 @@ type SignInValues = z.infer<typeof signInSchema>;
 
 const SignInForm = ({ onSuccess }: SignInFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { signIn } = useAuth();
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -35,18 +37,11 @@ const SignInForm = ({ onSuccess }: SignInFormProps) => {
     setIsLoading(true);
     
     try {
-      // In a real app, you would integrate with Supabase auth here
-      // const { error } = await supabase.auth.signInWithPassword(values);
-      // if (error) throw error;
-      
-      // For now, we'll just simulate success after a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success("Successfully signed in!");
+      await signIn(values.email, values.password);
       onSuccess();
     } catch (error) {
-      console.error("Sign in error:", error);
-      toast.error("Failed to sign in. Please check your credentials and try again.");
+      console.error("Failed to sign in:", error);
+      // Error is already handled in the signIn function
     } finally {
       setIsLoading(false);
     }

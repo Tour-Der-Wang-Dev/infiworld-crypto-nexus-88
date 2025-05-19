@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Filter, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,9 +8,11 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import Layout from '../components/Layout';
 import ListingCard from "../components/marketplace/ListingCard";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // Types
-interface Listing {
+export interface Listing {
   id: string;
   title: string;
   description: string;
@@ -20,88 +21,16 @@ interface Listing {
   location: string;
   category: "property" | "vehicle" | "collectible" | "electronics" | "other";
   images: string[];
-  acceptedCryptos: string[];
-  seller: {
+  accepted_cryptos: string[];
+  featured?: boolean;
+  created_at: string;
+  user_id: string;
+  seller?: {
     name: string;
     rating: number;
     verified: boolean;
   };
-  featured?: boolean;
-  createdAt: string;
 }
-
-// Mock data
-const MOCK_LISTINGS: Listing[] = [
-  {
-    id: "1",
-    title: "Luxury Beachfront Villa",
-    description: "Modern 4-bedroom villa with private pool and ocean views",
-    price: 850000,
-    currency: "USD",
-    location: "Phuket, Thailand",
-    category: "property",
-    images: ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
-    acceptedCryptos: ["Bitcoin", "Ethereum"],
-    seller: {
-      name: "Premium Realty",
-      rating: 4.8,
-      verified: true
-    },
-    featured: true,
-    createdAt: "2025-02-15T09:30:00Z"
-  },
-  {
-    id: "2",
-    title: "Tesla Model S Plaid",
-    description: "2025 Tesla Model S Plaid, 0-60 in 1.99s, 350 mile range",
-    price: 115000,
-    currency: "USD",
-    location: "Bangkok, Thailand",
-    category: "vehicle",
-    images: ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
-    acceptedCryptos: ["Bitcoin", "Ethereum", "Dogecoin"],
-    seller: {
-      name: "ElectricWheels",
-      rating: 4.5,
-      verified: true
-    },
-    createdAt: "2025-04-20T10:15:00Z"
-  },
-  {
-    id: "3",
-    title: "Rare Bitcoin Gold Coin",
-    description: "Limited edition physical Bitcoin gold coin from 2013",
-    price: 1500,
-    currency: "USD",
-    location: "Singapore",
-    category: "collectible",
-    images: ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
-    acceptedCryptos: ["Bitcoin", "Litecoin"],
-    seller: {
-      name: "CryptoCollectibles",
-      rating: 4.9,
-      verified: true
-    },
-    createdAt: "2025-05-01T14:45:00Z"
-  },
-  {
-    id: "4",
-    title: "MacBook Pro M4",
-    description: "Latest MacBook Pro with M4 chip, 32GB RAM, 2TB SSD",
-    price: 3200,
-    currency: "USD",
-    location: "Chiang Mai, Thailand",
-    category: "electronics",
-    images: ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
-    acceptedCryptos: ["Bitcoin", "Ethereum", "Solana"],
-    seller: {
-      name: "TechTreasures",
-      rating: 4.7,
-      verified: false
-    },
-    createdAt: "2025-05-10T08:20:00Z"
-  }
-];
 
 // Filter types
 type FilterOptions = {
@@ -113,6 +42,9 @@ type FilterOptions = {
 };
 
 const Marketplace = () => {
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [activeFilters, setActiveFilters] = useState<FilterOptions>({
     search: "",
     category: "all",
@@ -126,9 +58,130 @@ const Marketplace = () => {
   
   // Available cryptocurrencies for filtering
   const cryptoOptions = ["Bitcoin", "Ethereum", "Litecoin", "Solana", "Dogecoin"];
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch listings from Supabase (if table exists)
+        const { data, error } = await supabase
+          .from('marketplace_listings')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching listings:", error);
+          throw error;
+        }
+
+        // Transform data to match our Listing type
+        if (data) {
+          const formattedListings: Listing[] = data.map(item => ({
+            ...item,
+            // Use default images if none are provided
+            images: item.images?.length ? item.images : ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
+            // If accepted_cryptos is null, use an empty array
+            accepted_cryptos: item.accepted_cryptos || [],
+            // Add default seller info for now (would be fetched from profiles in a real app)
+            seller: {
+              name: "Seller",
+              rating: 4.5,
+              verified: true
+            }
+          }));
+          
+          setListings(formattedListings);
+        } else {
+          // If no data or table doesn't exist yet, use mock data
+          setListings(MOCK_LISTINGS);
+        }
+      } catch (error) {
+        console.error("Failed to fetch listings:", error);
+        toast.error("Failed to load listings. Using sample data instead.");
+        setListings(MOCK_LISTINGS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchListings();
+  }, []);
+  
+  // Mock data as fallback
+  const MOCK_LISTINGS: Listing[] = [
+    {
+      id: "1",
+      title: "Luxury Beachfront Villa",
+      description: "Modern 4-bedroom villa with private pool and ocean views",
+      price: 850000,
+      currency: "USD",
+      location: "Phuket, Thailand",
+      category: "property",
+      images: ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
+      accepted_cryptos: ["Bitcoin", "Ethereum"],
+      seller: {
+        name: "Premium Realty",
+        rating: 4.8,
+        verified: true
+      },
+      featured: true,
+      created_at: "2025-02-15T09:30:00Z"
+    },
+    {
+      id: "2",
+      title: "Tesla Model S Plaid",
+      description: "2025 Tesla Model S Plaid, 0-60 in 1.99s, 350 mile range",
+      price: 115000,
+      currency: "USD",
+      location: "Bangkok, Thailand",
+      category: "vehicle",
+      images: ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
+      accepted_cryptos: ["Bitcoin", "Ethereum", "Dogecoin"],
+      seller: {
+        name: "ElectricWheels",
+        rating: 4.5,
+        verified: true
+      },
+      created_at: "2025-04-20T10:15:00Z"
+    },
+    {
+      id: "3",
+      title: "Rare Bitcoin Gold Coin",
+      description: "Limited edition physical Bitcoin gold coin from 2013",
+      price: 1500,
+      currency: "USD",
+      location: "Singapore",
+      category: "collectible",
+      images: ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
+      accepted_cryptos: ["Bitcoin", "Litecoin"],
+      seller: {
+        name: "CryptoCollectibles",
+        rating: 4.9,
+        verified: true
+      },
+      created_at: "2025-05-01T14:45:00Z"
+    },
+    {
+      id: "4",
+      title: "MacBook Pro M4",
+      description: "Latest MacBook Pro with M4 chip, 32GB RAM, 2TB SSD",
+      price: 3200,
+      currency: "USD",
+      location: "Chiang Mai, Thailand",
+      category: "electronics",
+      images: ["/lovable-uploads/fa2ca62f-a8b9-4103-a00b-25b4cb4ea24b.png"],
+      accepted_cryptos: ["Bitcoin", "Ethereum", "Solana"],
+      seller: {
+        name: "TechTreasures",
+        rating: 4.7,
+        verified: false
+      },
+      created_at: "2025-05-10T08:20:00Z"
+    }
+  ];
   
   // Filter listings based on active filters
-  const filteredListings = MOCK_LISTINGS.filter(listing => {
+  const filteredListings = listings.filter(listing => {
     // Search filter
     const matchesSearch = activeFilters.search === "" || 
       listing.title.toLowerCase().includes(activeFilters.search.toLowerCase()) ||
@@ -146,7 +199,7 @@ const Marketplace = () => {
     // Crypto filter
     const matchesCrypto = activeFilters.acceptedCryptos.length === 0 || 
       activeFilters.acceptedCryptos.some(crypto => 
-        listing.acceptedCryptos.includes(crypto)
+        listing.accepted_cryptos.includes(crypto)
       );
     
     return matchesSearch && matchesCategory && matchesPrice && matchesCrypto;
@@ -287,48 +340,56 @@ const Marketplace = () => {
           
           {/* Listings grid */}
           <div className="lg:col-span-3">
-            {/* Featured listings */}
-            {filteredListings.some(listing => listing.featured) && (
-              <div className="mb-8">
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <Check className="text-infi-gold mr-2" size={18} />
-                  Featured Listings
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredListings
-                    .filter(listing => listing.featured)
-                    .map(listing => (
-                      <ListingCard key={listing.id} listing={listing} featured />
-                    ))}
-                </div>
-              </div>
-            )}
-            
-            {/* All listings */}
-            <h2 className="text-xl font-bold text-white mb-4">All Listings</h2>
-            {filteredListings.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredListings.map(listing => (
-                  <ListingCard key={listing.id} listing={listing} />
-                ))}
+            {isLoading ? (
+              <div className="bg-infi-deep/50 rounded-lg p-12 text-center">
+                <p className="text-gray-300">Loading listings...</p>
               </div>
             ) : (
-              <div className="bg-infi-deep/50 rounded-lg p-12 text-center">
-                <p className="text-gray-300">No listings found matching your filters.</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4 border-white/20"
-                  onClick={() => setActiveFilters({
-                    search: "",
-                    category: "all",
-                    minPrice: 0,
-                    maxPrice: 1000000,
-                    acceptedCryptos: [],
-                  })}
-                >
-                  Reset Filters
-                </Button>
-              </div>
+              <>
+                {/* Featured listings */}
+                {filteredListings.some(listing => listing.featured) && (
+                  <div className="mb-8">
+                    <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                      <Check className="text-infi-gold mr-2" size={18} />
+                      Featured Listings
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredListings
+                        .filter(listing => listing.featured)
+                        .map(listing => (
+                          <ListingCard key={listing.id} listing={listing} featured />
+                        ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* All listings */}
+                <h2 className="text-xl font-bold text-white mb-4">All Listings</h2>
+                {filteredListings.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredListings.map(listing => (
+                      <ListingCard key={listing.id} listing={listing} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-infi-deep/50 rounded-lg p-12 text-center">
+                    <p className="text-gray-300">No listings found matching your filters.</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4 border-white/20"
+                      onClick={() => setActiveFilters({
+                        search: "",
+                        category: "all",
+                        minPrice: 0,
+                        maxPrice: 1000000,
+                        acceptedCryptos: [],
+                      })}
+                    >
+                      Reset Filters
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

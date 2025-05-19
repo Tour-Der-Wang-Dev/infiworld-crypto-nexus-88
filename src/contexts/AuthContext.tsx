@@ -1,21 +1,24 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-type User = {
-  id: string;
-  name: string;
-  email: string;
+type UserWithDetails = User & {
+  name?: string;
   avatar?: string;
   verificationStatus?: "unverified" | "pending" | "verified";
 };
 
 interface AuthContextType {
-  user: User | null;
+  user: UserWithDetails | null;
+  session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,82 +32,136 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithDetails | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // In a real app with Supabase, you'd check for an existing session here
-    // supabase.auth.getSession().then(({ data: { session } }) => {...})
-    
-    // For demo purposes, we'll check localStorage
-    const storedUser = localStorage.getItem("infiworld_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  const refreshSession = async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      
+      if (data.session?.user) {
+        const userData = {
+          ...data.session.user,
+          name: data.session.user.user_metadata?.full_name as string,
+          verificationStatus: "unverified" as const,
+        };
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error("Error refreshing session:", error);
     }
-    
-    setIsLoading(false);
+  };
+
+  // Initialize auth state
+  useEffect(() => {
+    // First, set up the auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        setSession(currentSession);
+        
+        if (currentSession?.user) {
+          const userData = {
+            ...currentSession.user,
+            name: currentSession.user.user_metadata?.full_name as string,
+            verificationStatus: "unverified" as const,
+          };
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Then check for an existing session
+    refreshSession().then(() => {
+      setIsLoading(false);
+    });
+
+    // Cleanup function
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Mock sign-in function
+  // Sign in with email/password
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     
     try {
-      // In a real app, you'd use Supabase auth here
-      // This is a mock implementation
-      const mockUser: User = {
-        id: "user_" + Math.random().toString(36).substr(2, 9),
-        name: email.split('@')[0],
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        verificationStatus: "unverified"
-      };
+        password
+      });
       
-      setUser(mockUser);
-      localStorage.setItem("infiworld_user", JSON.stringify(mockUser));
+      if (error) throw error;
+      
+      toast.success("Successfully signed in!");
+    } catch (error: any) {
+      console.error("Sign in error:", error);
+      toast.error(error.message || "Failed to sign in. Please check your credentials and try again.");
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Mock sign-up function
+  // Sign up with email/password and user metadata
   const signUp = async (email: string, password: string, fullName: string) => {
     setIsLoading(true);
     
     try {
-      // In a real app, you'd use Supabase auth here
-      // This is a mock implementation
-      const mockUser: User = {
-        id: "user_" + Math.random().toString(36).substr(2, 9),
-        name: fullName,
+      const { error } = await supabase.auth.signUp({
         email,
-        verificationStatus: "unverified"
-      };
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          }
+        }
+      });
       
-      setUser(mockUser);
-      localStorage.setItem("infiworld_user", JSON.stringify(mockUser));
+      if (error) throw error;
+      
+      toast.success("Account created successfully! Please check your email to verify your account.");
+    } catch (error: any) {
+      console.error("Sign up error:", error);
+      toast.error(error.message || "Failed to create account. Please try again.");
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Sign out function
+  // Sign out
   const signOut = async () => {
-    // In a real app, you'd use Supabase auth here
-    // await supabase.auth.signOut()
-    
-    localStorage.removeItem("infiworld_user");
-    setUser(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setUser(null);
+      setSession(null);
+      toast.success("You have been signed out successfully");
+    } catch (error: any) {
+      console.error("Sign out error:", error);
+      toast.error(error.message || "Failed to sign out. Please try again.");
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        session,
+        isAuthenticated: !!session,
         isLoading,
         signIn,
         signUp,
-        signOut
+        signOut,
+        refreshSession
       }}
     >
       {children}
